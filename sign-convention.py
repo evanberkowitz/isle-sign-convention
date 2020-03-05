@@ -148,8 +148,8 @@ def bootstrap(lat, params, file, log):
         measurements = {
             "N_h": f['/correlation_functions/one_point/N_h'][()],
             "N_p": f['/correlation_functions/one_point/N_p'][()],
-            # "a_adag": f['/correlation_functions/single_particle/correlators'][()],
-            # "b_bdag": f['/correlation_functions/single_hole/correlators'][()],
+            "a_adag": f['/correlation_functions/single_particle/correlators'][()],
+            "b_bdag": f['/correlation_functions/single_hole/correlators'][()],
             }
 
         measurements["rho"] = measurements["N_p"] - measurements["N_h"]
@@ -176,7 +176,37 @@ def bootstrap(lat, params, file, log):
             f[f"bootstrapped/{m}-mean"] = mean
             f[f"bootstrapped/{m}-std"] = std
 
-        print(f"{m:5}  {np.real(mean)} {np.real(std)}")
+def compare(lat, params, file, log):
+    LATTICE=lat.name
+    nt=lat.nt()
+    discretization=DISC(params.hopping)
+
+    measurements = [
+        "N_h",
+        "N_p",
+        "a_adag",
+        "b_bdag",
+        ]
+
+    mean = dict()
+    std = dict()
+    with h5.File(file, 'r') as f:
+        for m in measurements:
+            mean[m] = f[f"bootstrapped/{m}-mean"][()]
+            std[m]  = f[f"bootstrapped/{m}-std"][()]
+
+    mean["rho"] = mean["N_p"] - mean["N_h"]
+    mean["Q"] = np.sum(mean["rho"])
+    mean["n"] = mean["N_p"] + mean["N_h"]
+    mean["N"] = np.sum(mean["n"])
+
+    mean["Ch-Cp"] = np.einsum('ii->',mean["b_bdag"][:,:,0]-mean["a_adag"][:,:,0])
+
+    measurements = mean.keys()
+
+    for m in measurements:
+        if "dag" not in m:
+            print(f"{m:10} {mean[m]}")
 
 def main():
 
@@ -190,7 +220,7 @@ def main():
     for LATTICE, nt, discretization in product(lattices, nts, discretizations):
 
         log.info(f"{LATTICE} nt={nt} {discretization}")
-        print(f"{LATTICE} nt={nt} {discretization}")
+        print(f"\n\n{LATTICE} nt={nt} {discretization}")
 
         lat = isle.LATTICES[LATTICE]
         lat.nt(nt)
@@ -201,6 +231,7 @@ def main():
         hmc(lat, params, file, log)
         measure(lat, params, file, log)
         bootstrap(lat, params, file, log)
+        compare(lat,params,file,log)
 
     # with h5.File("summary.h5", 'a') as summary:
     #     summary[f"{LATTICE}/{discretization}/{nt}"] = np.arange(10)
