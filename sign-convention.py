@@ -176,7 +176,7 @@ def bootstrap(lat, params, file, log):
             f[f"bootstrapped/{m}-mean"] = mean
             f[f"bootstrapped/{m}-std"] = std
 
-def compare(lat, params, file, log):
+def summary(lat, params, file, log):
     LATTICE=lat.name
     nt=lat.nt()
     discretization=DISC(params.hopping)
@@ -231,10 +231,8 @@ def main():
         hmc(lat, params, file, log)
         measure(lat, params, file, log)
         bootstrap(lat, params, file, log)
-        compare(lat,params,file,log)
+        summary(lat,params,file,log)
 
-    # with h5.File("summary.h5", 'a') as summary:
-    #     summary[f"{LATTICE}/{discretization}/{nt}"] = np.arange(10)
 
 if __name__ == "__main__":
     main()
